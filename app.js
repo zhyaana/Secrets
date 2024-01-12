@@ -40,7 +40,7 @@ res.render("secrets");
 app.post("/register" ,async (req , res)=>{
 
    const email = req.body.username;
-   const password=process.env.PASS_WORD
+   const password=md5(req.body.password);
    console.log();
 try {
   await db.query("INSERT INTO users (email,password) VALUES ($1,$2)",[email,password]);
@@ -52,7 +52,7 @@ try {
 
 app.post("/login" , async(req,res)=>{
    const email = req.body.username;
-   const password=process.env.PASS_WORD
+   const password=md5(req.body.password);
    
    try {
       const result = await db.query("SELECT * FROM users WHERE email=$1 AND password=$2" , [email,password]);
