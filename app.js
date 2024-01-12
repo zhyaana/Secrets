@@ -1,11 +1,14 @@
 //jshint esversion:6
 require('dotenv').config();
+const bcrypt = require('bcrypt');
 const express = require("express");
 const bodyParser = require("body-parser");
  const ejs = require("ejs");
 const pg = require("pg");
 const app = express();
 const md5 = require("crypto-js/md5");
+
+const saltRounds = 10;
 
  const db =new pg.Client({
    user: 'postgres',
@@ -39,26 +42,37 @@ res.render("secrets");
 
 app.post("/register" ,async (req , res)=>{
 
+   bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+      // Store hash in your password DB.
    const email = req.body.username;
-   const password=md5(req.body.password);
+   const password=hash;
    console.log();
-try {
-  await db.query("INSERT INTO users (email,password) VALUES ($1,$2)",[email,password]);
+   try {
+   db.query("INSERT INTO users (email,password) VALUES ($1,$2)",[email,password]);
    res.render("secrets")
 } catch (error) {
    console.log(error);
 }
 });
+  });
+
 
 app.post("/login" , async(req,res)=>{
    const email = req.body.username;
-   const password=md5(req.body.password);
-   
+   const password=req.body.password;
+  
    try {
-      const result = await db.query("SELECT * FROM users WHERE email=$1 AND password=$2" , [email,password]);
-      if( result.rowCount === 1){
-         res.render("secrets");
-      }
+      const response = await db.query("SELECT * FROM users WHERE email=$1" , [email]);
+      const hashPassword = response.rows[0].password;
+      bcrypt.compare(password, hashPassword, function(err, result) {
+         if(result == true){
+            res.render("secrets");
+         }
+         else{
+            console.log(err);
+         }
+     });
+    
    } catch (error) {
       console.log(error);
    }
